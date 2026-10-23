@@ -1,11 +1,11 @@
 "use client";
 
-import { api } from "@/lib/api-client";
+import { api } from "@/lib/api";
 import type { AdminStats, PublicDoctor, PublicStore } from "../types";
 
-export const fetchStores = () => api<PublicStore[]>("/api/stores");
-export const fetchDoctors = () => api<PublicDoctor[]>("/api/doctors");
-export const fetchAdminStats = () => api<AdminStats>("/api/admin/stats", { role: "admin" });
-export const addDoctor = (data: Record<string, unknown>) => api<PublicDoctor>("/api/doctors", { role: "admin", body: data });
-export const addStore = (data: Record<string, unknown>) => api<PublicStore>("/api/stores", { role: "admin", body: data });
-export const resetDemoData = () => api("/api/admin/reset", { role: "admin", body: {} });
+/** Stores come from the shared billing `stores` table (managed in the Gladskin admin app). */
+export const fetchStores = () => api.get<PublicStore[]>("/stores");
+export const fetchDoctors = () => api.get<PublicDoctor[]>("/doctors");
+export const fetchAdminStats = () => api.get<AdminStats>("/admin/stats");
+export const addDoctor = (data: Record<string, unknown>) => api.post<PublicDoctor>("/doctors", data);
+export const updateDoctor = (id: string, data: Record<string, unknown>) => api.patch<PublicDoctor>(`/doctors/${id}`, data);

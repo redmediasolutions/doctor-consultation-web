@@ -1,11 +1,13 @@
 "use client";
 
-import type { Role } from "@/features/auth/types";
-import { api } from "@/lib/api-client";
+import { api } from "@/lib/api";
 import type { PrescriptionWithRefs } from "../types";
 
-export const listPrescriptions = (role: Role, today = true) =>
-  api<PrescriptionWithRefs[]>(`/api/prescriptions${today ? "?today=1" : ""}`, { role });
+/** Staff → their store only (enforced by the server). Admin may pass a storeId. */
+export const listPrescriptions = (opts: { today?: boolean; storeId?: string } = {}) =>
+  api.get<PrescriptionWithRefs[]>("/prescriptions", { today: opts.today === false ? "" : "1", storeId: opts.storeId });
+
+export const getPrescription = (id: string) => api.get<PrescriptionWithRefs>(`/prescriptions/${id}`);
 
 export const setDispensed = (id: string, dispensed: boolean) =>
-  api<PrescriptionWithRefs>(`/api/prescriptions/${id}`, { method: "PATCH", role: "staff", body: { dispensed } });
+  api.patch<PrescriptionWithRefs>(`/prescriptions/${id}`, { dispensed });

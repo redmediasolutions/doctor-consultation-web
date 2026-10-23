@@ -38,9 +38,9 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PublicDoctor } from "@/features/admin/types";
-import { logout } from "@/features/auth/repository/auth-repository";
+import { useAuth } from "@/hooks/use-auth";
 import { usePoll } from "@/hooks/use-poll";
-import { ApiError } from "@/lib/api-client";
+import { ApiError, errorMessage } from "@/lib/api";
 import { cn, formatTime, minutesBetween } from "@/lib/utils";
 import { emptyDraft, RxForm, type RxDraft } from "../addform/rx-form";
 import { useAgoraCall } from "../hooks/use-agora-call";
@@ -66,6 +66,7 @@ const AVAILABLE_KEY = "mc.doctor.available";
 
 export function DoctorConsole({ doctor }: { doctor: PublicDoctor }) {
   const router = useRouter();
+  const { logout } = useAuth();
   const call = useAgoraCall();
   const [available, setAvailable] = useState<boolean>(() => {
     try {
@@ -96,7 +97,7 @@ export function DoctorConsole({ doctor }: { doctor: PublicDoctor }) {
   useEffect(() => {
     const beat = () =>
       sendHeartbeat(status).catch((e) => {
-        if (e instanceof ApiError && e.status === 401) router.replace("/login?role=doctor");
+        if (e instanceof ApiError && e.status === 401) router.replace("/login");
       });
     beat();
     const t = setInterval(beat, 15_000);
@@ -104,8 +105,8 @@ export function DoctorConsole({ doctor }: { doctor: PublicDoctor }) {
   }, [status, router]);
 
   /* -------------------------------- data -------------------------------- */
-  const queue = usePoll(() => listConsultations("doctor", { status: "active" }), 3000);
-  const history = usePoll(() => listConsultations("doctor", { doctorId: "me", today: "1" }), 15_000);
+  const queue = usePoll(() => listConsultations({ status: "active" }), 3000);
+  const history = usePoll(() => listConsultations({ doctorId: "me", today: "1" }), 15_000);
 
   const waiting = useMemo(
     () =>
@@ -159,7 +160,7 @@ export function DoctorConsole({ doctor }: { doctor: PublicDoctor }) {
         const creds = await doctorRtcCredentials(c.id);
         await call.join(creds, () => doctorRtcCredentials(c.id));
       } catch (e) {
-        toast.error((e as Error).message || "Could not start the video call");
+        toast.error(errorMessage(e) || "Could not start the video call");
       }
     },
     [call],
@@ -188,7 +189,7 @@ export function DoctorConsole({ doctor }: { doctor: PublicDoctor }) {
     try {
       openConsult(await acceptConsultation(c.id));
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(errorMessage(e));
       queue.refresh();
     }
   }
@@ -201,7 +202,7 @@ export function DoctorConsole({ doctor }: { doctor: PublicDoctor }) {
       toast.success(`Prescription ${rx.rxNo} sent to ${active.store?.name ?? "the store"}`);
       await closeConsult();
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(errorMessage(e));
     } finally {
       setSubmitting(false);
     }
@@ -212,7 +213,7 @@ export function DoctorConsole({ doctor }: { doctor: PublicDoctor }) {
     try {
       await endConsultation(active.id);
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(errorMessage(e));
     }
     setConfirmEnd(false);
     await closeConsult();
@@ -243,8 +244,8 @@ export function DoctorConsole({ doctor }: { doctor: PublicDoctor }) {
   async function signOut() {
     await call.leave();
     call.stopPreview();
-    await logout("doctor");
-    router.replace("/login?role=doctor");
+    await logout();
+    router.replace("/login");
   }
 
   const done = (history.data ?? []).filter((c) => c.status === "completed");

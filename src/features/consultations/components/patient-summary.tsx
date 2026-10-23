@@ -63,7 +63,8 @@ export function PatientSummary({ c }: { c: ConsultationWithRefs }) {
         <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Store</p>
         <p className="font-medium">{c.store?.name}</p>
         <p className="text-muted-foreground">
-          {c.store?.address}, {c.store?.city} · Pharmacist {c.store?.pharmacistName}
+          {[c.store?.address, c.store?.city].filter(Boolean).join(", ")}
+          {c.store?.phone ? ` · ${c.store.phone}` : ""}
         </p>
       </div>
     </div>

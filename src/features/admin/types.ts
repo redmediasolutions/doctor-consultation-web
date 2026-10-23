@@ -1,20 +1,20 @@
 export type DoctorStatus = "online" | "busy" | "offline";
 
-export interface Store {
+/** Store from the shared billing `stores` table (GET /api/tele/stores). */
+export interface PublicStore {
   id: string;
+  code: string;
   name: string;
   address: string;
   city: string;
   phone: string;
   pharmacistName: string;
   drugLicenseNo: string;
-  staffPin: string;
+  gstin: string;
 }
 
-/** Store as sent to clients — never includes the staff PIN. */
-export type PublicStore = Omit<Store, "staffPin">;
-
-export interface Doctor {
+/** Doctor from tele_doctors (GET /api/tele/doctors). phone / email / isActive only for the owner. */
+export interface PublicDoctor {
   id: string;
   name: string;
   specialty: string;
@@ -23,13 +23,12 @@ export interface Doctor {
   experienceYears: number;
   languages: string[];
   fee: number;
-  pin: string;
   status: DoctorStatus;
   lastSeenAt?: string;
+  phone?: string;
+  email?: string;
+  isActive?: boolean;
 }
-
-/** Doctor as sent to clients — never includes the PIN. */
-export type PublicDoctor = Omit<Doctor, "pin">;
 
 export interface StoreStat {
   storeId: string;

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { errorMessage } from "@/lib/api";
 import { SPECIALTIES } from "@/lib/config";
 import { addDoctor } from "../repository/directory-repository";
 
@@ -31,7 +32,7 @@ export function AddDoctorForm({ onAdded }: { onAdded: () => void }) {
     experienceYears: "",
     languages: "English, Kannada",
     fee: "200",
-    pin: "",
+    phone: "",
   });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
 
@@ -39,11 +40,12 @@ export function AddDoctorForm({ onAdded }: { onAdded: () => void }) {
     e.preventDefault();
     try {
       await addDoctor(f);
-      toast.success("Doctor added");
+      toast.success("Doctor added — they can now sign in with this mobile number");
+      setF((prev) => ({ ...prev, name: "", registrationNo: "", qualification: "", experienceYears: "", phone: "" }));
       setOpen(false);
       onAdded();
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(errorMessage(err));
     }
   }
 
@@ -96,8 +98,8 @@ export function AddDoctorForm({ onAdded }: { onAdded: () => void }) {
           <FormField label="Languages (comma separated)">
             <Input value={f.languages} onChange={set("languages")} />
           </FormField>
-          <FormField label="Login PIN">
-            <Input value={f.pin} onChange={set("pin")} inputMode="numeric" placeholder="4–6 digits" required />
+          <FormField label="Mobile number (login)" hint="The doctor signs in with an OTP to this number">
+            <Input value={f.phone} onChange={set("phone")} type="tel" inputMode="tel" placeholder="98450 12345" required />
           </FormField>
           <DialogFooter className="sm:col-span-2">
             <Button type="submit">Save doctor</Button>

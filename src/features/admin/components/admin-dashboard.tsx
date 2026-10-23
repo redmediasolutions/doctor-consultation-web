@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ActivityIcon,
@@ -8,66 +9,72 @@ import {
   ClockIcon,
   FileTextIcon,
   IndianRupeeIcon,
-  RotateCcwIcon,
+  PillIcon,
   StethoscopeIcon,
   StoreIcon,
   UsersIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { ConfirmDialog } from "@/components/confirm-dialog";
 import { AppHeader } from "@/components/layout/app-header";
 import { ProfileMenu } from "@/components/profile-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { logout } from "@/features/auth/repository/auth-repository";
+import type { SessionUser } from "@/features/auth/types";
+import { useAuth } from "@/hooks/use-auth";
+import { errorMessage } from "@/lib/api";
 import { ConsultStatusBadge, DoctorStatusBadge } from "@/features/consultations/components/status-badge";
 import { listConsultations } from "@/features/consultations/repository/consultation-repository";
 import { usePoll } from "@/hooks/use-poll";
 import { cn, formatINR, formatTime, initials, minutesBetween } from "@/lib/utils";
 import { AddDoctorForm } from "../addform/add-doctor-form";
-import { AddStoreForm } from "../addform/add-store-form";
-import { fetchAdminStats, fetchDoctors, fetchStores, resetDemoData } from "../repository/directory-repository";
+import { fetchAdminStats, fetchDoctors, fetchStores, updateDoctor } from "../repository/directory-repository";
+import type { PublicDoctor } from "../types";
 
 /** Owner dashboard: today's numbers across all stores, consultation log, doctors and stores. */
-export function AdminDashboard() {
+export function AdminDashboard({ user }: { user: SessionUser }) {
   const router = useRouter();
+  const { logout } = useAuth();
   const stats = usePoll(fetchAdminStats, 5000);
-  const consults = usePoll(() => listConsultations("admin", { today: "1" }), 5000);
+  const consults = usePoll(() => listConsultations({ today: "1" }), 5000);
   const doctors = usePoll(fetchDoctors, 8000);
   const stores = usePoll(fetchStores, 30_000);
-  const [confirmReset, setConfirmReset] = useState(false);
   const [storeFilter, setStoreFilter] = useState("all");
 
   const s = stats.data?.today;
   const list = (consults.data ?? []).filter((c) => storeFilter === "all" || c.storeId === storeFilter);
 
   async function signOut() {
-    await logout("admin");
-    router.replace("/login?role=admin");
+    await logout();
+    router.replace("/login");
   }
 
-  async function resetDemo() {
-    await resetDemoData();
-    toast.success("Demo data restored");
-    stats.refresh();
-    consults.refresh();
-    doctors.refresh();
-    stores.refresh();
+  async function setActive(d: PublicDoctor, isActive: boolean) {
+    try {
+      await updateDoctor(d.id, { isActive });
+      toast.success(isActive ? `${d.name} can sign in again` : `${d.name} can no longer sign in`);
+      doctors.refresh();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
   }
 
   return (
     <>
       <AppHeader sub="Owner dashboard">
-        <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)}>
-          <RotateCcwIcon /> <span className="hidden sm:inline">Reset demo data</span>
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/pharmacy">
+            <PillIcon /> <span className="hidden sm:inline">Pharmacy counter</span>
+          </Link>
         </Button>
         <ProfileMenu
-          name="Owner"
+          name={user.fullName || "Owner"}
           subtitle="Administrator"
           onRefresh={() => {
             stats.refresh();
@@ -227,8 +234,10 @@ export function AdminDashboard() {
                       <TableHead>Specialty</TableHead>
                       <TableHead>Reg. No.</TableHead>
                       <TableHead>Languages</TableHead>
+                      <TableHead>Mobile (login)</TableHead>
                       <TableHead>Fee</TableHead>
-                      <TableHead className="pr-6">Status</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="pr-6">Can sign in</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -250,9 +259,17 @@ export function AdminDashboard() {
                         <TableCell>{d.specialty}</TableCell>
                         <TableCell className="font-mono text-xs">{d.registrationNo}</TableCell>
                         <TableCell className="text-muted-foreground">{d.languages.join(", ")}</TableCell>
+                        <TableCell className="font-mono text-xs">{d.phone}</TableCell>
                         <TableCell>{formatINR(d.fee)}</TableCell>
+                        <TableCell>
+                          {d.isActive === false ? <Badge variant="outline">Disabled</Badge> : <DoctorStatusBadge status={d.status} />}
+                        </TableCell>
                         <TableCell className="pr-6">
-                          <DoctorStatusBadge status={d.status} />
+                          <Switch
+                            checked={d.isActive !== false}
+                            onCheckedChange={(v) => setActive(d, v)}
+                            aria-label={`Allow ${d.name} to sign in`}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -265,20 +282,19 @@ export function AdminDashboard() {
             <Card className="gap-4">
               <CardHeader>
                 <CardTitle>Stores</CardTitle>
-                <CardDescription>Open /kiosk on each store&apos;s tablet and pick the store once.</CardDescription>
-                <CardAction>
-                  <AddStoreForm onAdded={stores.refresh} />
-                </CardAction>
+                <CardDescription>
+                  From the Gladskin billing system. Each store&apos;s tablet runs the MedConnect app, signed in with that
+                  store&apos;s staff login.
+                </CardDescription>
               </CardHeader>
               <CardContent className="px-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="pl-6">Store</TableHead>
-                      <TableHead>Pharmacist</TableHead>
+                      <TableHead>Code</TableHead>
                       <TableHead>Drug licence</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead className="pr-6">Kiosk link</TableHead>
+                      <TableHead className="pr-6">Phone</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -287,17 +303,12 @@ export function AdminDashboard() {
                         <TableCell className="pl-6">
                           <p className="font-medium">{st.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {st.address}, {st.city}
+                            {[st.address, st.city].filter(Boolean).join(", ")}
                           </p>
                         </TableCell>
-                        <TableCell>{st.pharmacistName}</TableCell>
-                        <TableCell className="font-mono text-xs">{st.drugLicenseNo}</TableCell>
-                        <TableCell className="text-muted-foreground">{st.phone}</TableCell>
-                        <TableCell className="pr-6">
-                          <a href={`/kiosk/${st.id}`} target="_blank" rel="noreferrer" className="font-mono text-xs text-primary hover:underline">
-                            /kiosk/{st.id}
-                          </a>
-                        </TableCell>
+                        <TableCell className="font-mono text-xs">{st.code}</TableCell>
+                        <TableCell className="font-mono text-xs">{st.drugLicenseNo || "—"}</TableCell>
+                        <TableCell className="pr-6 text-muted-foreground">{st.phone}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -308,15 +319,6 @@ export function AdminDashboard() {
         </Tabs>
       </main>
 
-      <ConfirmDialog
-        open={confirmReset}
-        onOpenChange={setConfirmReset}
-        title="Reset demo data?"
-        description="Deletes all consultations and prescriptions and restores the demo stores and doctors."
-        confirmLabel="Reset"
-        destructive
-        onConfirm={resetDemo}
-      />
     </>
   );
 }

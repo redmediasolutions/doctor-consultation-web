@@ -22,7 +22,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PublicStore } from "@/features/admin/types";
-import { logout } from "@/features/auth/repository/auth-repository";
+import type { SessionUser } from "@/features/auth/types";
+import { useAuth } from "@/hooks/use-auth";
+import { errorMessage } from "@/lib/api";
 import { ConsultStatusBadge } from "@/features/consultations/components/status-badge";
 import { listConsultations } from "@/features/consultations/repository/consultation-repository";
 import { usePoll } from "@/hooks/use-poll";
@@ -32,11 +34,12 @@ import type { PrescriptionWithRefs } from "../types";
 import { PrescriptionView } from "./prescription-view";
 
 /** Pharmacy counter: today's prescriptions for this store + who is at the kiosk. */
-export function PharmacyCounter({ store }: { store: PublicStore }) {
+export function PharmacyCounter({ store, user, storePicker }: { store: PublicStore; user: SessionUser; storePicker?: React.ReactNode }) {
   const router = useRouter();
+  const { logout } = useAuth();
   const [open, setOpen] = useState<PrescriptionWithRefs | null>(null);
-  const rxs = usePoll(() => listPrescriptions("staff"), 4000);
-  const live = usePoll(() => listConsultations("staff", { status: "active" }), 4000);
+  const rxs = usePoll(() => listPrescriptions({ storeId: store.id }), 4000);
+  const live = usePoll(() => listConsultations({ status: "active", storeId: store.id }), 4000);
 
   const pending = (rxs.data ?? []).filter((r) => !r.dispensed);
   const dispensed = (rxs.data ?? []).filter((r) => r.dispensed);
@@ -60,23 +63,24 @@ export function PharmacyCounter({ store }: { store: PublicStore }) {
       rxs.refresh();
       toast.success(value ? `Token ${rx.token} marked as dispensed` : "Moved back to pending");
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(errorMessage(e));
     }
   }
 
   return (
     <>
       <AppHeader sub={`Counter · ${shortStore(store.name)}`}>
+        {storePicker}
         <ProfileMenu
-          name={shortStore(store.name)}
-          subtitle={`Pharmacist ${store.pharmacistName}`}
+          name={user.fullName || shortStore(store.name)}
+          subtitle={user.kind === "admin" ? "Administrator" : shortStore(store.name)}
           onRefresh={() => {
             rxs.refresh();
             live.refresh();
           }}
           onSignOut={async () => {
-            await logout("staff");
-            router.replace("/login?role=staff");
+            await logout();
+            router.replace("/login");
           }}
         />
       </AppHeader>

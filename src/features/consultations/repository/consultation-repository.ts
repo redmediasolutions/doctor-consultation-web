@@ -1,28 +1,23 @@
 "use client";
 
-import type { Role } from "@/features/auth/types";
 import type { PrescriptionDraft, PrescriptionWithRefs } from "@/features/prescriptions/types";
-import { api } from "@/lib/api-client";
+import { api } from "@/lib/api";
 import type { ConsultationWithRefs, RtcCredentials } from "../types";
 
-export function listConsultations(role: Role, query: Record<string, string> = {}) {
-  const qs = new URLSearchParams(query).toString();
-  return api<ConsultationWithRefs[]>(`/api/consultations${qs ? `?${qs}` : ""}`, { role });
-}
+/** ?status=waiting|in_call|completed|cancelled|active &doctorId=me &today=1 &storeId= */
+export const listConsultations = (query: Record<string, string> = {}) =>
+  api.get<ConsultationWithRefs[]>("/consultations", query);
 
-export const getConsultation = (id: string) => api<ConsultationWithRefs>(`/api/consultations/${id}`);
+export const getConsultation = (id: string) => api.get<ConsultationWithRefs>(`/consultations/${id}`);
 
 export const acceptConsultation = (id: string) =>
-  api<ConsultationWithRefs>(`/api/consultations/${id}`, { method: "PATCH", role: "doctor", body: { action: "accept" } });
+  api.patch<ConsultationWithRefs>(`/consultations/${id}`, { action: "accept" });
 
-export const endConsultation = (id: string) =>
-  api<ConsultationWithRefs>(`/api/consultations/${id}`, { method: "PATCH", role: "doctor", body: { action: "end" } });
+export const endConsultation = (id: string) => api.patch<ConsultationWithRefs>(`/consultations/${id}`, { action: "end" });
 
-export const doctorRtcCredentials = (id: string) =>
-  api<RtcCredentials>(`/api/consultations/${id}/rtc?as=doctor`, { role: "doctor" });
+export const doctorRtcCredentials = (id: string) => api.get<RtcCredentials>(`/consultations/${id}/rtc`, { as: "doctor" });
 
 export const issuePrescription = (id: string, draft: PrescriptionDraft) =>
-  api<PrescriptionWithRefs>(`/api/consultations/${id}/prescription`, { role: "doctor", body: draft });
+  api.post<PrescriptionWithRefs>(`/consultations/${id}/prescription`, draft);
 
-export const sendHeartbeat = (status: "online" | "busy" | "offline") =>
-  api("/api/doctors/heartbeat", { role: "doctor", body: { status } });
+export const sendHeartbeat = (status: "online" | "busy" | "offline") => api.post("/doctors/heartbeat", { status });

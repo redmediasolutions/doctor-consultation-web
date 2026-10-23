@@ -18,21 +18,21 @@ import { BRAND } from "@/lib/config";
 
 const consoles = [
   {
-    href: "/login?role=doctor",
+    href: "/login",
     icon: StethoscopeIcon,
     title: "Doctor console",
     desc: "Live queue from all stores, Agora video consultation with patient vitals, and e-prescriptions.",
     who: "Doctors",
   },
   {
-    href: "/login?role=staff",
+    href: "/login",
     icon: PillIcon,
     title: "Pharmacy counter",
     desc: "Prescriptions arrive at the counter instantly. Print, dispense and mark as handed over.",
     who: "Store staff",
   },
   {
-    href: "/login?role=admin",
+    href: "/login",
     icon: LayoutDashboardIcon,
     title: "Owner dashboard",
     desc: "Today's consultations across all stores, doctor availability, wait times, fees, doctors and stores.",

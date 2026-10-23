@@ -1,29 +1,36 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Loader2Icon } from "lucide-react";
 
-import { useSession } from "@/hooks/use-session";
-import type { Role } from "../types";
+import { useAuth } from "@/hooks/use-auth";
+import type { SessionUser, UserKind } from "../types";
 
-export const ROLE_HOME: Record<Role, string> = { doctor: "/doctor", staff: "/pharmacy", admin: "/admin" };
+/** Where each kind of user lands after signing in. */
+export const ROLE_HOME: Record<UserKind, string> = { doctor: "/doctor", staff: "/pharmacy", admin: "/admin" };
 
-/** Renders children only when signed in as [role]; otherwise sends the user to /login. */
-export function RoleGuard<P>({ role, children }: { role: Role; children: (profile: P) => React.ReactNode }) {
+/**
+ * Renders children only when signed in as one of `kinds`.
+ * Not signed in → /login. Signed in as someone else → their own home screen.
+ */
+export function RoleGuard({ kinds, children }: { kinds: UserKind[]; children: (user: SessionUser) => React.ReactNode }) {
   const router = useRouter();
-  const { ready, profile } = useSession<P>(role);
+  const pathname = usePathname();
+  const { status, user } = useAuth();
+  const allowed = status === "authenticated" && user && kinds.includes(user.kind);
 
   useEffect(() => {
-    if (ready && !profile) router.replace(`/login?role=${role}`);
-  }, [ready, profile, role, router]);
+    if (status === "anonymous") router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+    else if (status === "authenticated" && user && !kinds.includes(user.kind)) router.replace(ROLE_HOME[user.kind]);
+  }, [status, user, kinds, router, pathname]);
 
-  if (!ready || !profile) {
+  if (!allowed) {
     return (
       <div className="flex flex-1 items-center justify-center py-24 text-muted-foreground">
         <Loader2Icon className="size-6 animate-spin" />
       </div>
     );
   }
-  return <>{children(profile)}</>;
+  return <>{children(user)}</>;
 }
