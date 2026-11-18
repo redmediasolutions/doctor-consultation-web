@@ -3,6 +3,7 @@ import {
   ArrowRightIcon,
   FileTextIcon,
   LayoutDashboardIcon,
+  MonitorSmartphoneIcon,
   PillIcon,
   ShieldCheckIcon,
   SmartphoneIcon,
@@ -17,6 +18,13 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { BRAND } from "@/lib/config";
 
 const consoles = [
+  {
+    href: "/login?next=/kiosk",
+    icon: MonitorSmartphoneIcon,
+    title: "Store kiosk",
+    desc: "Patients register, see a doctor on video and get their prescription — in the browser, like the tablet app.",
+    who: "Store staff",
+  },
   {
     href: "/login",
     icon: StethoscopeIcon,
@@ -75,9 +83,9 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mt-12 grid gap-4 md:grid-cols-3">
+        <section className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {consoles.map((c) => (
-            <Link key={c.href} href={c.href} className="group">
+            <Link key={c.title} href={c.href} className="group">
               <Card className="h-full transition-all group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-md">
                 <CardHeader>
                   <div className="mb-2 flex items-center justify-between">

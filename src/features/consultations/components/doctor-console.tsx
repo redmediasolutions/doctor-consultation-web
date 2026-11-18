@@ -228,6 +228,10 @@ export function DoctorConsole({ doctor }: { doctor: PublicDoctor }) {
         if (c.status === "cancelled") {
           toast.warning(`${c.patient.name} left the consultation`);
           closeConsult();
+        } else if (c.status === "completed") {
+          // Finished from another device (e.g. the same doctor on the Flutter app).
+          toast.info(`Consultation with ${c.patient.name} was completed`);
+          closeConsult();
         }
       })
       .catch(() => undefined);

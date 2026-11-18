@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2Icon,
@@ -9,6 +10,7 @@ import {
   StethoscopeIcon,
   Undo2Icon,
   VideoIcon,
+  MonitorSmartphoneIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -71,6 +73,11 @@ export function PharmacyCounter({ store, user, storePicker }: { store: PublicSto
     <>
       <AppHeader sub={`Counter · ${shortStore(store.name)}`}>
         {storePicker}
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/kiosk">
+            <MonitorSmartphoneIcon /> <span className="hidden sm:inline">Store kiosk</span>
+          </Link>
+        </Button>
         <ProfileMenu
           name={user.fullName || shortStore(store.name)}
           subtitle={user.kind === "admin" ? "Administrator" : shortStore(store.name)}

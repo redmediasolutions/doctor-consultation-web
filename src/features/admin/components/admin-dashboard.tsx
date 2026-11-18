@@ -9,6 +9,7 @@ import {
   ClockIcon,
   FileTextIcon,
   IndianRupeeIcon,
+  MonitorSmartphoneIcon,
   PillIcon,
   StethoscopeIcon,
   StoreIcon,
@@ -71,6 +72,11 @@ export function AdminDashboard({ user }: { user: SessionUser }) {
         <Button variant="ghost" size="sm" asChild>
           <Link href="/pharmacy">
             <PillIcon /> <span className="hidden sm:inline">Pharmacy counter</span>
+          </Link>
+        </Button>
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/kiosk">
+            <MonitorSmartphoneIcon /> <span className="hidden sm:inline">Store kiosk</span>
           </Link>
         </Button>
         <ProfileMenu
